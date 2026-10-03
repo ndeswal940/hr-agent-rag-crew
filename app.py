@@ -20,14 +20,18 @@ st.set_page_config(
 st.title("🤖 Autonomous HR Talent & Policy Intelligence Crew")
 st.caption("Multi-Agent Architecture powered by Groq API (Llama 3.3 70B) & ChromaDB RAG Engine")
 
-# Read Groq API key safely from Streamlit Secrets or Environment
-if "GROQ_API_KEY" in st.secrets:
-    groq_api_key = st.secrets["GROQ_API_KEY"]
-else:
-    groq_api_key = os.getenv("GROQ_API_KEY")
+# Read Groq API key safely from Environment Variables or Streamlit Secrets
+groq_api_key = os.getenv("GROQ_API_KEY")
 
 if not groq_api_key:
-    st.error("⚠️ GROQ_API_KEY is missing! Please configure it in Streamlit Secrets or Environment Variables.")
+    try:
+        if "GROQ_API_KEY" in st.secrets:
+            groq_api_key = st.secrets["GROQ_API_KEY"]
+    except Exception:
+        pass
+
+if not groq_api_key:
+    st.error("⚠️ GROQ_API_KEY is missing! Please configure environment variables or secrets.")
     st.stop()
 
 # -------------------------------------------------------------------
