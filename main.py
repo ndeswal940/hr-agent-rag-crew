@@ -1,19 +1,32 @@
 import os
-from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from dotenv import load_dotenv
+from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_groq import ChatGroq
 from langchain.tools import tool
 from crewai import Agent, Task, Crew, Process
 
-# Set your API keys (or pass via environment variables)
-# os.environ["OPENAI_API_KEY"] = "your-api-key"
+# -------------------------------------------------------------------
+# 0. ENVIRONMENT & API KEY INITIALIZATION (SECURE)
+# -------------------------------------------------------------------
+# Load environment variables from a local .env file if present
+load_dotenv()
+
+groq_api_key = os.getenv("GROQ_API_KEY")
+
+if not groq_api_key:
+    raise ValueError(
+        "CRITICAL ERROR: GROQ_API_KEY environment variable is not set.\n"
+        "Please create a .env file with 'GROQ_API_KEY=gsk_...' or export it in your terminal."
+    )
 
 # -------------------------------------------------------------------
-# 1. RAG INGESTION & VECTOR STORE SETUP (25% Weightage Component)
+# 1. RAG INGESTION & VECTOR STORE SETUP (25% Weightage)
 # -------------------------------------------------------------------
 def initialize_rag_database():
-    """Builds persistent local ChromaDB instance with HR documents."""
+    """Builds persistent local ChromaDB instance with local HuggingFace embeddings."""
     sample_policy = """
     COMPANY HR & COMPENSATION POLICY 2026:
     1. Remote Work: Senior Engineers (Level 4+) are eligible for 100% remote work. Junior/Mid (Level 1-3) require hybrid (2 days in-office).
@@ -30,7 +43,9 @@ def initialize_rag_database():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
     chunks = text_splitter.split_documents(docs)
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    # Free open-source embedding model running locally
+    embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-small-en-v1.5")
+    
     vectorstore = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
@@ -56,8 +71,26 @@ def query_hr_policy(query: str) -> str:
     return f"RETRIEVED POLICY CONTEXT:\n{context}"
 
 # -------------------------------------------------------------------
-# 3. CREWAI AGENT ORCHESTRATION
+# 3. GROQ LLM & CREWAI AGENT ORCHESTRATION
 # -------------------------------------------------------------------
+# Secure Groq LLM instance (reads API key directly from environment)
+groq_llm = ChatGroq(
+    model_name="llama-3.3-70b-versatile",
+    groq_api_key=groq_api_key,
+    temperature=0.1
+)
+
+# Agent 1: Senior Recruiter
+talent_evaluator = Agent(
+    role="Senior Technical Recruiter",
+    goal="Evaluate candidate qualifications and determine candidate seniority level.",
+    backstory="You are an expert tech recruiter who assesses candidate experience to assign seniority levels (Level 1 to Level 5) and candidate requests.",
+    verbose=True,
+    memory=True,
+    llm=groq_llm
+)
+
+# Agent 2: RAG Policy Specialist
 policy_analyst = Agent(
     role="HR Policy & Compliance Specialist",
     goal="Ensure all hiring actions and compensation proposals strictly comply with company policies.",
@@ -65,19 +98,20 @@ policy_analyst = Agent(
     tools=[query_hr_policy],
     verbose=True,
     memory=True,
-    llm=ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm=groq_llm
 )
 
-talent_evaluator = Agent(
-    role="Senior Technical Recruiter",
-    goal="Evaluate candidate qualifications and determine candidate seniority level.",
-    backstory="You are an expert tech recruiter who assesses candidate experience to assign seniority levels and fit.",
+# Agent 3: Offer Strategist
+offer_strategist = Agent(
+    role="Compensation & Offer Strategist",
+    goal="Synthesize candidate evaluation and policy compliance reports to draft final offer package decisions.",
+    backstory="You synthesize recruitment evaluations and compliance checks to produce final, policy-compliant candidate offer decisions.",
     verbose=True,
     memory=True,
-    llm=ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    llm=groq_llm
 )
 
-# Tasks Definition
+# Tasks
 task1 = Task(
     description="Evaluate candidate profile: 'John Doe, 8 years Senior Backend Engineer experience requesting 100% remote work and $20,000 signing bonus.' Determine seniority level.",
     expected_output="Detailed evaluation with assigned level (e.g., Level 4 or Level 5).",
@@ -90,10 +124,16 @@ task2 = Task(
     agent=policy_analyst
 )
 
+task3 = Task(
+    description="Based on the recruiter's evaluation and the HR compliance findings, generate a final offer package recommendation.",
+    expected_output="Final structured decision specifying approved remote status and final approved signing bonus amount.",
+    agent=offer_strategist
+)
+
 # Crew Assembly
 hr_crew = Crew(
-    agents=[talent_evaluator, policy_analyst],
-    tasks=[task1, task2],
+    agents=[talent_evaluator, policy_analyst, offer_strategist],
+    tasks=[task1, task2, task3],
     process=Process.sequential,
     verbose=True
 )
