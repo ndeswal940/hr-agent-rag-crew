@@ -20,7 +20,7 @@ st.set_page_config(
 st.title("🤖 Autonomous HR Talent & Policy Intelligence Crew")
 st.caption("Multi-Agent Architecture powered by Groq API (Llama 3.3 70B) & ChromaDB RAG Engine")
 
-# Read Groq API key safely from Environment Variables or Streamlit Secrets
+# Safe API key initialization for Render and local development
 groq_api_key = os.getenv("GROQ_API_KEY")
 
 if not groq_api_key:
@@ -31,9 +31,8 @@ if not groq_api_key:
         pass
 
 if not groq_api_key:
-    st.error("⚠️ GROQ_API_KEY is missing! Please configure environment variables or secrets.")
+    st.error("⚠️ GROQ_API_KEY is missing! Please configure environment variables in Render.")
     st.stop()
-
 # -------------------------------------------------------------------
 # 2. RAG VECTOR STORE INITIALIZATION (Cached for Performance)
 # -------------------------------------------------------------------
