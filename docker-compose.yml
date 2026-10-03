@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  hr-agent-crew:
+    build: .
+    container_name: hr_rag_agent_crew
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./chroma_db:/app/chroma_db
+    restart: unless-stopped
