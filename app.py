@@ -97,7 +97,7 @@ if st.sidebar.button("🚀 Run Agent Evaluation Crew"):
         
         # Initialize Groq LLM
         groq_llm = ChatGroq(
-            model_name="llama-3.3-70b-versatile",
+            model_name="openai/gpt-oss-120b",
             groq_api_key=groq_api_key,
             temperature=0.1
         )
