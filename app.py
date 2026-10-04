@@ -17,11 +17,11 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 
 # Page Setup
-st.set_page_config(page_title="Indian HR Compensation & Policy AI Crew", page_icon="🇮🇳", layout="wide")
-st.title("🇮🇳 Autonomous Indian HR Compensation & Policy Intelligence Crew")
-st.caption("Multi-Agent Architecture powered by Groq API & RAG Engine (Tailored for Indian Salary Standards)")
+st.set_page_config(page_title="Multi-Industry HR Compensation AI Crew", page_icon="🏢", layout="wide")
+st.title("🏢 Multi-Industry HR Compensation & Policy Intelligence Crew")
+st.caption("Autonomous Multi-Agent Architecture Supporting 10 Industry Sectors in India")
 
-# Helper function to clean text rendering and ensure correct formatting
+# Clean formatting helper
 def clean_output(text: str) -> str:
     text = re.sub(r'<br\s*/?>', '\n', text)
     text = text.replace('∗∗', '**')
@@ -50,34 +50,105 @@ if not groq_api_key:
         pass
 
 # -------------------------------------------------------------------
-# 2. INDIAN HR POLICY & RAG RETRIEVER INITIALIZATION
+# 2. DYNAMIC MULTI-INDUSTRY POLICY ENGINE (10 SECTORS)
 # -------------------------------------------------------------------
-sample_indian_policy = """
-INDIAN HR & COMPENSATION POLICY GUIDELINES (2026):
-1. Level Hierarchy & Compensation (CTC in INR):
-   - Level 1-2 (Software Engineer / Mid): Base CTC Band ₹6 LPA to ₹14 LPA. Max joining/joining bonus capped at ₹1,00,000.
-   - Level 3-4 (Senior Engineer / Tech Lead): Base CTC Band ₹15 LPA to ₹28 LPA. Max joining bonus capped at ₹2,50,000.
-   - Level 5+ (Engineering Manager / Staff Engineer): Base CTC Band ₹30 LPA+. Max joining bonus capped at ₹5,00,000.
+st.sidebar.header("🏭 Industry Sector Selection")
+industry = st.sidebar.selectbox(
+    "Select Target Industry Sector",
+    [
+        "Information Technology (IT & Tech)",
+        "Automotive & Manufacturing",
+        "Banking & Finance (BFSI)",
+        "Healthcare & Pharma",
+        "E-Commerce & Logistics",
+        "FMCG & Consumer Goods",
+        "Core Engineering & Construction",
+        "Telecommunications",
+        "Media & Advertising",
+        "Renewable Energy & CleanTech"
+    ]
+)
 
-2. Work Model Policy:
-   - Level 1-3: Hybrid mandatory (Min 3 days office attendance in Indian Tech Hubs: Bangalore, Gurgaon, Pune, Hyderabad).
-   - Level 4+: Eligible for 100% Work From Home (WFH) / Remote option upon VP/HR Approval.
+INDUSTRY_POLICIES = {
+    "Information Technology (IT & Tech)": """
+    IT & TECH HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹6 LPA to ₹45 LPA+. Max Joining Bonus ₹2.5L for Sr Engineers.
+    - Work Model: Hybrid / 100% WFH eligible for Senior Roles (Level 4+).
+    - Allowances: Internet, Home-Office Setup, Night Shift Allowances.
+    - Notice Period: Standard 60 Days.
+    """,
+    "Automotive & Manufacturing": """
+    AUTOMOTIVE & MANUFACTURING HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹4.5 LPA to ₹30 LPA. Max Joining Bonus ₹1.0L (Base salary focused).
+    - Work Model: 100% On-Site / Plant Mandatory for Operations. Remote restricted to HQ strategy roles.
+    - Allowances: Rotational Shift Allowance, Plant Transport, Safety Equipment & Uniform Allowance, Relocation Allowance.
+    - Notice Period: Standard 30 to 45 Days.
+    """,
+    "Banking & Finance (BFSI)": """
+    BANKING & FINANCE HR POLICY GUIDELINES:
+    - Compensation: Fixed Base + High Performance Variable Bonus (Up to 30% of CTC).
+    - Work Model: On-site / Hybrid (Max 2 days office WFH due to compliance and regulatory security).
+    - Allowances: Financial Compliance Allowance, Meal Vouchers, Comprehensive Life/Health Insurance.
+    - Notice Period: Standard 60 to 90 Days.
+    """,
+    "Healthcare & Pharma": """
+    HEALTHCARE & PHARMA HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹5 LPA to ₹35 LPA. On-call retention bonuses available.
+    - Work Model: On-site / Hospital / Lab compulsory for Clinical/R&D roles. WFH allowed for Health-Tech/Data roles.
+    - Allowances: Professional Hazard Allowance, On-call Allowance, CME (Continuing Medical Education) Reimbursement.
+    - Notice Period: Standard 30 Days.
+    """,
+    "E-Commerce & Logistics": """
+    E-COMMERCE & LOGISTICS HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹4 LPA to ₹28 LPA. Peak season performance incentives available.
+    - Work Model: On-site mandatory for Fulfillment/Warehouse managers. Hybrid for Tech/Product roles.
+    - Allowances: Night Shift, Fulfillment Center Allowance, Fleet Management Travel Reimbursements.
+    - Notice Period: Standard 30 to 45 Days.
+    """,
+    "FMCG & Consumer Goods": """
+    FMCG & CONSUMER GOODS HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹5 LPA to ₹32 LPA. Strong performance-linked quarterly sales incentives.
+    - Work Model: Field-based / On-site mandatory for Sales & Operations. Hybrid for Brand/Corporate roles.
+    - Allowances: Daily Travel Allowance (TA/DA), Vehicle Maintenance, Regional Mobility Allowance.
+    - Notice Period: Standard 30 to 60 Days.
+    """,
+    "Core Engineering & Construction": """
+    CORE ENGINEERING & CONSTRUCTION HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹4.5 LPA to ₹28 LPA. Project completion bonuses applicable.
+    - Work Model: 100% Site Location Mandatory for Project Engineers. Corporate HQ allows Hybrid.
+    - Allowances: Site Project Hardship Allowance, Free Accommodation / HRA, Safety Equipment Allowance.
+    - Notice Period: Standard 30 Days.
+    """,
+    "Telecommunications": """
+    TELECOMMUNICATIONS HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹5 LPA to ₹30 LPA. Network availability performance bonuses.
+    - Work Model: On-site/Field for Network Engineers. Hybrid for IT & Corporate Telecom roles.
+    - Allowances: Field Duty Mobile/Data Allowance, Night Shift Allowance, Emergency Response Allowance.
+    - Notice Period: Standard 60 Days.
+    """,
+    "Media & Advertising": """
+    MEDIA & ADVERTISING HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹4 LPA to ₹25 LPA. Campaign-based incentive bonuses.
+    - Work Model: Flexible Hybrid / Studio On-site depending on production schedules.
+    - Allowances: Equipment Allowance, Production Meal Vouchers, Overtime Compensation.
+    - Notice Period: Standard 30 Days.
+    """,
+    "Renewable Energy & CleanTech": """
+    RENEWABLE ENERGY & CLEANTECH HR POLICY GUIDELINES:
+    - Compensation: CTC Range ₹5 LPA to ₹32 LPA. Green Tech innovation retention bonuses.
+    - Work Model: On-site Solar/Wind Plant location for Site Engineers. Hybrid for R&D/HQ.
+    - Allowances: Remote Site Hardship Allowance, Travel Allowance, Safety Equipment Coverage.
+    - Notice Period: Standard 30 to 45 Days.
+    """
+}
 
-3. Standard Indian Salary Structure Components:
-   - Basic Salary: 40% to 50% of Fixed CTC.
-   - House Rent Allowance (HRA): 50% of Basic for Metro cities (Delhi-NCR, Bangalore, Mumbai), 40% for Non-Metro.
-   - Special Allowance / Flexible Benefit Basket (FBA): Remaining Fixed Balance.
-   - Employer PF Contribution: 12% of Basic (Deducted towards Statutory EPF).
+# Load active selected industry policy
+selected_policy_text = INDUSTRY_POLICIES[industry]
+policy_filename = "active_industry_policy.txt"
+with open(policy_filename, "w") as f:
+    f.write(selected_policy_text)
 
-4. Notice Period & Retention:
-   - Standard Notice Period in India: 60 days (or 90 days for Critical Tech roles). Buyout/Reduction requires VP HR sign-off.
-"""
-
-if not os.path.exists("indian_hr_policy.txt"):
-    with open("indian_hr_policy.txt", "w") as f:
-        f.write(sample_indian_policy)
-
-loader = TextLoader("indian_hr_policy.txt")
+loader = TextLoader(policy_filename)
 docs = loader.load()
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=350, chunk_overlap=50)
@@ -87,29 +158,28 @@ retriever = BM25Retriever.from_documents(chunks)
 retriever.k = 2
 
 def query_hr_policy(query: str) -> str:
-    """Queries internal Indian HR policy vector database."""
     results = retriever.invoke(query)
     if not results:
         return "ERROR_RETRIEVAL_FAILED: No matching HR policy context found."
     return "\n---\n".join([doc.page_content for doc in results])
 
 # -------------------------------------------------------------------
-# 3. SIDEBAR USER INPUTS (INDIAN CURRENCY & SALARY FORMAT)
+# 3. SIDEBAR CANDIDATE INPUTS
 # -------------------------------------------------------------------
 st.sidebar.header("📋 Candidate Input Profile")
-name = st.sidebar.text_input("Candidate Name", "Aarav Sharma")
-experience = st.sidebar.number_input("Years of Experience", min_value=1, max_value=30, value=7)
-role = st.sidebar.text_input("Role Requested", "Senior Backend Engineer")
-expected_ctc = st.sidebar.number_input("Expected Fixed CTC (in ₹ LPA)", min_value=3.0, max_value=100.0, value=22.0, step=0.5)
-remote_req = st.sidebar.selectbox("Work Location Request", ["100% Remote / WFH", "Hybrid (3 days office)", "On-site (Bangalore/Gurgaon)"])
-bonus_req = st.sidebar.number_input("Requested Joining Bonus (in ₹ INR)", min_value=0, max_value=1000000, value=300000, step=25000)
+name = st.sidebar.text_input("Candidate Name", "Rahul Verma")
+experience = st.sidebar.number_input("Years of Experience", min_value=1, max_value=30, value=8)
+role = st.sidebar.text_input("Role Requested", "Senior Specialist / Lead")
+expected_ctc = st.sidebar.number_input("Expected Fixed CTC (in ₹ LPA)", min_value=3.0, max_value=100.0, value=20.0, step=0.5)
+remote_req = st.sidebar.selectbox("Work Model Request", ["On-site (Plant / Office / Site)", "Hybrid Work", "100% Remote / WFH"])
+bonus_req = st.sidebar.number_input("Requested Joining Bonus (in ₹ INR)", min_value=0, max_value=1000000, value=150000, step=25000)
 
-run_button = st.sidebar.button("🚀 Evaluate Candidate Offer Package")
+run_button = st.sidebar.button("🚀 Evaluate Multi-Industry Offer")
 
 if not groq_api_key:
     st.warning("👈 Pehle sidebar me apni **Groq API Key** enter karein taaki execution start ho sake.")
 else:
-    st.success("✅ Groq API Key Configured Successfully!")
+    st.success(f"✅ Groq API Key Configured! Active Sector: **{industry}**")
 
 # -------------------------------------------------------------------
 # 4. SEQUENTIAL AGENT PIPELINE EXECUTION
@@ -118,7 +188,7 @@ if run_button:
     if not groq_api_key:
         st.error("⚠️ Please enter a valid Groq API Key in the sidebar before running.")
     else:
-        with st.spinner("Running Indian Multi-Agent Evaluation Sequence..."):
+        with st.spinner(f"Evaluating Candidate for {industry} Sector..."):
             
             llm = ChatGroq(
                 groq_api_key=groq_api_key,
@@ -126,9 +196,9 @@ if run_button:
                 temperature=0.1
             )
 
-            # --- AGENT 1: Senior Technical Recruiter (India Tech Hub) ---
+            # --- AGENT 1: Industry Technical Recruiter ---
             recruiter_prompt = ChatPromptTemplate.from_messages([
-                ("system", "You are a Senior Technical Recruiter specializing in the Indian IT Industry. Evaluate candidate experience, role requested, and expected CTC (in ₹ LPA). Assign a seniority level (Level 1 to Level 5) with clear justification in clean Markdown format with proper spacing."),
+                ("system", f"You are a Senior Technical Recruiter specializing in the **{industry}** sector in India. Evaluate candidate experience, role requested, and expected CTC (in ₹ LPA). Assign a seniority level (Level 1 to Level 5) with clear sector-specific justification."),
                 ("human", "Candidate Details: Name: {name}, Experience: {exp} years, Requested Role: {role}, Expected CTC: ₹{ctc} LPA")
             ])
             recruiter_chain = recruiter_prompt | llm
@@ -139,15 +209,15 @@ if run_button:
                 "ctc": expected_ctc
             }).content)
 
-            st.subheader("Step 1: 🎯 Indian Talent Recruiter Evaluation")
+            st.subheader(f"Step 1: 🎯 Recruiter Evaluation ({industry})")
             st.info(eval_result)
 
-            # --- AGENT 2: HR Policy Specialist (Indian RAG Engine) ---
-            policy_context = query_hr_policy(f"{role} remote work joining bonus CTC Indian policy")
+            # --- AGENT 2: Industry Policy Specialist (RAG Engine) ---
+            policy_context = query_hr_policy(f"{role} work model joining bonus CTC allowance policy")
             
             policy_prompt = ChatPromptTemplate.from_messages([
-                ("system", "You are an Indian HR Policy Specialist. Audit requested compensation terms (CTC in ₹ LPA, Joining Bonus in ₹, and Work location) against corporate guidelines retrieved via RAG.\n\nRetrieved Policy Guidelines:\n{context}\n\nSTRICT FORMATTING RULES: Do not use HTML tags like <br>. Use clean Markdown bullets and tables. Ensure correct spacing for Indian Currency numbers (₹)."),
-                ("human", "Recruiter Evaluation Output:\n{eval_output}\n\nCandidate Requests:\nExpected Fixed CTC: ₹{ctc} LPA\nWork Location Request: {remote}\nJoining Bonus Request: ₹{bonus:,}")
+                ("system", f"You are an HR Policy Specialist for the **{industry}** industry. Audit candidate terms against retrieved guidelines.\n\nRetrieved Sector Guidelines:\n{context}\n\nSTRICT FORMATTING RULES: Do not use HTML tags like <br>. Use clean Markdown bullets and tables. Ensure correct spacing for Indian Currency numbers (₹)."),
+                ("human", "Recruiter Evaluation Output:\n{eval_output}\n\nCandidate Requests:\nExpected Fixed CTC: ₹{ctc} LPA\nWork Model Request: {remote}\nJoining Bonus Request: ₹{bonus:,}")
             ])
             policy_chain = policy_prompt | llm
             policy_result = clean_output(policy_chain.invoke({
@@ -158,24 +228,24 @@ if run_button:
                 "bonus": bonus_req
             }).content)
 
-            st.subheader("Step 2: ⚖️ HR Policy & Compliance Audit (Indian RAG Engine)")
+            st.subheader("Step 2: ⚖️ HR Policy & Sector Compliance Audit")
             st.warning(policy_result)
 
-            # --- AGENT 3: Compensation & Offer Strategist (India Structure) ---
+            # --- AGENT 3: Compensation & Offer Strategist ---
             strategist_prompt = ChatPromptTemplate.from_messages([
-                ("system", """You are an Executive Compensation Strategist in India. Synthesize candidate evaluations and HR policy audit reports into a final Indian Hiring Offer Decision Package.
+                ("system", f"""You are an Executive Compensation Strategist in India specializing in **{industry}**. Synthesize candidate evaluations and HR policy audit reports into a final Hiring Offer Decision Package.
 
-Provide a complete Indian CTC Salary Component Breakdown table:
+Provide a complete Indian CTC Breakdown table:
 - Base Fixed CTC (₹ LPA)
 - Basic Salary (50% of CTC)
 - HRA (50% of Basic for Metro)
-- Special Allowance / FBA (Balance)
+- Sector-Specific Allowances (Shift/Plant/Transport/Site/Special Allowances)
 - Employer PF Contribution (12% of Basic)
-- Joining Bonus (Approved Amount in ₹)
-- Work Location & Notice Period (60 days standard)
+- Approved Joining Bonus (in ₹)
+- Approved Work Model & Notice Period
 
-STRICT FORMATTING RULES: Use standard Markdown tables and bullet points. Do NOT use HTML tags like <br>. Ensure proper spacing between numbers, symbols (₹), and words."""),
-                ("human", "Recruiter Evaluation:\n{eval_output}\n\nPolicy Compliance Audit:\n{audit_output}\n\nCreate a final formatted hiring offer recommendation suited for Indian market standards.")
+STRICT FORMATTING RULES: Use standard Markdown tables and bullet points. Do NOT use HTML tags like <br>."""),
+                ("human", "Recruiter Evaluation:\n{eval_output}\n\nPolicy Compliance Audit:\n{audit_output}\n\nCreate a final formatted hiring offer recommendation suited for {industry} industry standards.")
             ])
             strategist_chain = strategist_prompt | llm
             final_offer = clean_output(strategist_chain.invoke({
@@ -184,5 +254,5 @@ STRICT FORMATTING RULES: Use standard Markdown tables and bullet points. Do NOT 
             }).content)
 
             st.success("✅ Multi-Agent Pipeline Execution Complete!")
-            st.subheader("📜 Final Executive Offer Decision Package (Indian Compensation Standards)")
+            st.subheader(f"📜 Final Executive Offer Decision Package ({industry})")
             st.markdown(final_offer)
