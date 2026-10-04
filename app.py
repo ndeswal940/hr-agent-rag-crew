@@ -197,8 +197,9 @@ if run_button:
             )
 
             # --- AGENT 1: Industry Technical Recruiter ---
+            recruiter_sys_msg = f"You are a Senior Technical Recruiter specializing in the **{industry}** sector in India. Evaluate candidate experience, role requested, and expected CTC (in ₹ LPA). Assign a seniority level (Level 1 to Level 5) with clear sector-specific justification."
             recruiter_prompt = ChatPromptTemplate.from_messages([
-                ("system", f"You are a Senior Technical Recruiter specializing in the **{industry}** sector in India. Evaluate candidate experience, role requested, and expected CTC (in ₹ LPA). Assign a seniority level (Level 1 to Level 5) with clear sector-specific justification."),
+                ("system", recruiter_sys_msg),
                 ("human", "Candidate Details: Name: {name}, Experience: {exp} years, Requested Role: {role}, Expected CTC: ₹{ctc} LPA")
             ])
             recruiter_chain = recruiter_prompt | llm
@@ -215,8 +216,9 @@ if run_button:
             # --- AGENT 2: Industry Policy Specialist (RAG Engine) ---
             policy_context = query_hr_policy(f"{role} work model joining bonus CTC allowance policy")
             
+            policy_sys_msg = f"You are an HR Policy Specialist for the **{industry}** industry. Audit candidate terms against retrieved guidelines.\n\nRetrieved Sector Guidelines:\n{{context}}\n\nSTRICT FORMATTING RULES: Do not use HTML tags like <br>. Use clean Markdown bullets and tables. Ensure correct spacing for Indian Currency numbers (₹)."
             policy_prompt = ChatPromptTemplate.from_messages([
-                ("system", f"You are an HR Policy Specialist for the **{industry}** industry. Audit candidate terms against retrieved guidelines.\n\nRetrieved Sector Guidelines:\n{{context}}\n\nSTRICT FORMATTING RULES: Do not use HTML tags like <br>. Use clean Markdown bullets and tables. Ensure correct spacing for Indian Currency numbers (₹)."),
+                ("system", policy_sys_msg),
                 ("human", "Recruiter Evaluation Output:\n{eval_output}\n\nCandidate Requests:\nExpected Fixed CTC: ₹{ctc} LPA\nWork Model Request: {remote}\nJoining Bonus Request: ₹{bonus:,}")
             ])
             policy_chain = policy_prompt | llm
@@ -232,8 +234,7 @@ if run_button:
             st.warning(policy_result)
 
             # --- AGENT 3: Compensation & Offer Strategist ---
-            strategist_prompt = ChatPromptTemplate.from_messages([
-                ("system", f"""You are an Executive Compensation Strategist in India specializing in **{industry}**. Synthesize candidate evaluations and HR policy audit reports into a final Hiring Offer Decision Package.
+            strategist_sys_msg = f"""You are an Executive Compensation Strategist in India specializing in **{industry}**. Synthesize candidate evaluations and HR policy audit reports into a final Hiring Offer Decision Package.
 
 Provide a complete Indian CTC Breakdown table:
 - Base Fixed CTC (₹ LPA)
@@ -244,8 +245,11 @@ Provide a complete Indian CTC Breakdown table:
 - Approved Joining Bonus (in ₹)
 - Approved Work Model & Notice Period
 
-STRICT FORMATTING RULES: Use standard Markdown tables and bullet points. Do NOT use HTML tags like <br>."""),
-                ("human", "Recruiter Evaluation:\n{eval_output}\n\nPolicy Compliance Audit:\n{audit_output}\n\nCreate a final formatted hiring offer recommendation suited for {industry} industry standards.")
+STRICT FORMATTING RULES: Use standard Markdown tables and bullet points. Do NOT use HTML tags like <br>."""
+
+            strategist_prompt = ChatPromptTemplate.from_messages([
+                ("system", strategist_sys_msg),
+                ("human", "Recruiter Evaluation:\n{eval_output}\n\nPolicy Compliance Audit:\n{audit_output}\n\nCreate a final formatted hiring offer recommendation suited for {industry} industry standards.".format(industry=industry))
             ])
             strategist_chain = strategist_prompt | llm
             final_offer = clean_output(strategist_chain.invoke({
