@@ -12,13 +12,13 @@ except ImportError:
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
-from crewai.tools import tool  # <-- CRITICAL FIX: Use crewai.tools instead of langchain.tools
-from crewai import Agent, Task, Crew, Process, LLM
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
 
 # Page Setup
 st.set_page_config(page_title="HR Talent & Policy Intelligence Agent Crew", page_icon="🤖", layout="wide")
 st.title("🤖 Autonomous HR Talent & Policy Intelligence Crew")
-st.caption("Multi-Agent Architecture powered by Groq API (openai/gpt-oss-120b) & RAG Engine")
+st.caption("Custom Multi-Agent Architecture powered by Groq API & RAG Engine")
 
 # -------------------------------------------------------------------
 # 1. SIDEBAR CONFIGURATION & API KEY INPUT
@@ -65,9 +65,8 @@ chunks = text_splitter.split_documents(docs)
 retriever = BM25Retriever.from_documents(chunks)
 retriever.k = 2
 
-@tool("HR Policy Retrieval Tool")
 def query_hr_policy(query: str) -> str:
-    """Queries the internal HR policy vector database to retrieve company guidelines."""
+    """Queries internal HR policy vector database."""
     results = retriever.invoke(query)
     if not results:
         return "ERROR_RETRIEVAL_FAILED: No matching HR policy context found."
@@ -83,7 +82,7 @@ role = st.sidebar.text_input("Role Requested", "Senior Backend Engineer")
 remote_req = st.sidebar.selectbox("Remote Request", ["100% Remote Work", "Hybrid (2 days office)", "On-site"])
 bonus_req = st.sidebar.number_input("Requested Signing Bonus ($)", min_value=0, max_value=50000, value=20000, step=1000)
 
-run_button = st.sidebar.button("🚀 Run CrewAI Evaluation")
+run_button = st.sidebar.button("🚀 Run Agent Evaluation")
 
 if not groq_api_key:
     st.warning("👈 Pehle sidebar me apni **Groq API Key** enter karein taaki execution start ho sake.")
@@ -91,59 +90,65 @@ else:
     st.success("✅ Groq API Key Configured Successfully!")
 
 # -------------------------------------------------------------------
-# 4. CREWAI EXECUTION (ONLY RUNS WHEN BUTTON IS CLICKED)
+# 4. SEQUENTIAL AGENT PIPELINE EXECUTION
 # -------------------------------------------------------------------
 if run_button:
     if not groq_api_key:
         st.error("⚠️ Please enter a valid Groq API Key in the sidebar before running.")
     else:
-        with st.spinner("Executing CrewAI Agents..."):
-            os.environ["GROQ_API_KEY"] = groq_api_key
-
-            # Explicit CrewAI LLM Wrapper
-            groq_llm = LLM(
-                model="groq/openai/gpt-oss-120b",
-                api_key=groq_api_key,
+        with st.spinner("Running Multi-Agent Evaluation Sequence..."):
+            
+            # Initialize LLM directly via ChatGroq
+            llm = ChatGroq(
+                groq_api_key=groq_api_key,
+                model_name="openai/gpt-oss-120b",
                 temperature=0.1
             )
 
-            talent_evaluator = Agent(
-                role="Senior Technical Recruiter",
-                goal="Evaluate candidate qualifications and assign seniority level.",
-                backstory="You assess experience to assign seniority levels (Level 1 to 5).",
-                verbose=True,
-                memory=True,
-                llm=groq_llm
-            )
+            # --- AGENT 1: Senior Technical Recruiter ---
+            recruiter_prompt = ChatPromptTemplate.from_messages([
+                ("system", "You are a Senior Technical Recruiter. Evaluate candidate experience and assign a seniority level (Level 1 to Level 5). Provide brief reasoning."),
+                ("human", "Candidate Details: Name: {name}, Experience: {exp} years, Requested Role: {role}")
+            ])
+            recruiter_chain = recruiter_prompt | llm
+            eval_result = recruiter_chain.invoke({
+                "name": name,
+                "exp": experience,
+                "role": role
+            }).content
 
-            policy_analyst = Agent(
-                role="HR Policy Specialist",
-                goal="Ensure hiring proposals strictly comply with company policy via RAG.",
-                backstory="You audit requests against corporate policy using the HR Policy Retrieval Tool.",
-                tools=[query_hr_policy],
-                verbose=True,
-                memory=True,
-                llm=groq_llm
-            )
+            st.subheader("Step 1: 🎯 Recruiter Evaluation")
+            st.info(eval_result)
 
-            offer_strategist = Agent(
-                role="Offer Strategist",
-                goal="Synthesize recruitment evaluations and compliance checks into a final offer package.",
-                backstory="You produce final, policy-compliant offer decisions.",
-                verbose=True,
-                memory=True,
-                llm=groq_llm
-            )
+            # --- AGENT 2: HR Policy Specialist (with RAG Retrieval) ---
+            policy_context = query_hr_policy(f"{role} remote work bonus level policy")
+            
+            policy_prompt = ChatPromptTemplate.from_messages([
+                ("system", "You are an HR Policy Specialist. Audit requested terms against corporate guidelines retrieved via RAG.\n\nRetrieved Policy Guidelines:\n{context}"),
+                ("human", "Recruiter Evaluation Output:\n{eval_output}\n\nCandidate Requests:\nRemote Request: {remote}\nSigning Bonus Request: ${bonus}")
+            ])
+            policy_chain = policy_prompt | llm
+            policy_result = policy_chain.invoke({
+                "context": policy_context,
+                "eval_output": eval_result,
+                "remote": remote_req,
+                "bonus": bonus_req
+            }).content
 
-            candidate_prompt = f"{name}, {experience} years experience as {role}, requesting {remote_req} and ${bonus_req:,} signing bonus."
+            st.subheader("Step 2: ⚖️️ HR Policy Audit (RAG Engine)")
+            st.warning(policy_result)
 
-            task1 = Task(description=f"Evaluate: '{candidate_prompt}'. Assign seniority level.", expected_output="Level assignment.", agent=talent_evaluator)
-            task2 = Task(description=f"Use HR Policy Retrieval Tool to audit if {remote_req} and ${bonus_req:,} bonus comply for assigned level.", expected_output="Compliance report.", agent=policy_analyst)
-            task3 = Task(description="Synthesize evaluation and policy findings into final offer decision.", expected_output="Final offer package.", agent=offer_strategist)
+            # --- AGENT 3: Offer Strategist ---
+            strategist_prompt = ChatPromptTemplate.from_messages([
+                ("system", "You are an Offer Strategist. Synthesize candidate evaluations and HR policy audit reports into a final executive offer decision package."),
+                ("human", "Recruiter Evaluation:\n{eval_output}\n\nPolicy Compliance Audit:\n{audit_output}\n\nCreate a final formatted hiring offer recommendation.")
+            ])
+            strategist_chain = strategist_prompt | llm
+            final_offer = strategist_chain.invoke({
+                "eval_output": eval_result,
+                "audit_output": policy_result
+            }).content
 
-            hr_crew = Crew(agents=[talent_evaluator, policy_analyst, offer_strategist], tasks=[task1, task2, task3], process=Process.sequential, verbose=True)
-            final_output = hr_crew.kickoff()
-
-            st.success("✅ CrewAI Execution Complete!")
-            st.subheader("📜 Final Agent Decision Package")
-            st.markdown(final_output)
+            st.success("✅ Multi-Agent Pipeline Execution Complete!")
+            st.subheader("📜 Final Executive Offer Decision Package")
+            st.markdown(final_offer)
