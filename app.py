@@ -1,16 +1,24 @@
 import os
 import streamlit as st
+
+# ChromaDB / SQLite patch for Linux environments (Render)
+try:
+    __import__('pysqlite3')
+    import sys
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
-from langchain_groq import ChatGroq
 from langchain.tools import tool
 from crewai import Agent, Task, Crew, Process
 
 # Page Setup
 st.set_page_config(page_title="HR Talent & Policy Intelligence Agent Crew", page_icon="🤖", layout="wide")
 st.title("🤖 Autonomous HR Talent & Policy Intelligence Crew")
-st.caption("Multi-Agent Architecture powered by Groq API (openai/gpt-oss-120b) & BM25 RAG Engine")
+st.caption("Multi-Agent Architecture powered by Groq API (openai/gpt-oss-120b) & RAG Engine")
 
 # -------------------------------------------------------------------
 # 1. SIDEBAR CONFIGURATION & API KEY INPUT
@@ -24,7 +32,7 @@ user_api_key = st.sidebar.text_input(
     help="Paste your Groq API key here (starts with gsk_)"
 )
 
-# Priority: Text box input -> Render Environment Variable -> Streamlit Secrets
+# Priority: UI Sidebar Input -> Render Environment Variable -> Streamlit Secrets
 groq_api_key = user_api_key or os.getenv("GROQ_API_KEY")
 
 if not groq_api_key:
@@ -35,7 +43,7 @@ if not groq_api_key:
         pass
 
 # -------------------------------------------------------------------
-# 2. LIGHTWEIGHT RAG RETRIEVER INITIALIZATION (WITHOUT CACHE HANG)
+# 2. FAST LIGHTWEIGHT RAG RETRIEVER INITIALIZATION
 # -------------------------------------------------------------------
 sample_policy = """
 COMPANY HR & COMPENSATION POLICY 2026:
@@ -44,7 +52,6 @@ COMPANY HR & COMPENSATION POLICY 2026:
 3. Notice Period: Standard notice period is 30 days. Exceptions require VP approval.
 """
 
-# File write once
 if not os.path.exists("hr_policy.txt"):
     with open("hr_policy.txt", "w") as f:
         f.write(sample_policy)
@@ -79,7 +86,7 @@ bonus_req = st.sidebar.number_input("Requested Signing Bonus ($)", min_value=0, 
 run_button = st.sidebar.button("🚀 Run CrewAI Evaluation")
 
 if not groq_api_key:
-    st.warning("👈 Pehle sidebar me apni **Groq API Key** enter karein taaki agents start ho sakein.")
+    st.warning("👈 Pehle sidebar me apni **Groq API Key** enter karein taaki agents execution ready ho sakein.")
 else:
     st.success("✅ Groq API Key Configured Successfully!")
 
@@ -88,31 +95,31 @@ if run_button:
         st.error("⚠️ Please enter a valid Groq API Key in the sidebar before running.")
     else:
         with st.spinner("Executing CrewAI Agents..."):
-            groq_llm = ChatGroq(
-                model_name="openai/gpt-oss-120b",
-                groq_api_key=groq_api_key,
-                temperature=0.1
-            )
+            # Set runtime environment variable for CrewAI / LiteLLM
+            os.environ["GROQ_API_KEY"] = groq_api_key
+
+            # Native CrewAI format for Groq models
+            model_id = "groq/openai/gpt-oss-120b"
 
             talent_evaluator = Agent(
                 role="Senior Technical Recruiter",
                 goal="Evaluate candidate qualifications and assign seniority level.",
                 backstory="You assess experience to assign seniority levels (Level 1 to 5).",
-                verbose=True, memory=True, llm=groq_llm
+                verbose=True, memory=True, llm=model_id
             )
 
             policy_analyst = Agent(
                 role="HR Policy Specialist",
                 goal="Ensure hiring proposals strictly comply with company policy via RAG.",
                 backstory="You audit requests against corporate policy using the HR Policy Retrieval Tool.",
-                tools=[query_hr_policy], verbose=True, memory=True, llm=groq_llm
+                tools=[query_hr_policy], verbose=True, memory=True, llm=model_id
             )
 
             offer_strategist = Agent(
                 role="Offer Strategist",
                 goal="Synthesize recruitment evaluations and compliance checks into a final offer package.",
                 backstory="You produce final, policy-compliant offer decisions.",
-                verbose=True, memory=True, llm=groq_llm
+                verbose=True, memory=True, llm=model_id
             )
 
             candidate_prompt = f"{name}, {experience} years experience as {role}, requesting {remote_req} and ${bonus_req:,} signing bonus."
