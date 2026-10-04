@@ -95,10 +95,10 @@ if run_button:
         st.error("⚠️ Please enter a valid Groq API Key in the sidebar before running.")
     else:
         with st.spinner("Executing CrewAI Agents..."):
-            # Set runtime environment variable for CrewAI / LiteLLM
+            # Set environment variable so CrewAI / LiteLLM reads it natively
             os.environ["GROQ_API_KEY"] = groq_api_key
 
-            # Native CrewAI format for Groq models
+            # Direct string definition to prevent Pydantic validation error
             model_id = "groq/openai/gpt-oss-120b"
 
             talent_evaluator = Agent(
