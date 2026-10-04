@@ -13,7 +13,7 @@ from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
 from langchain.tools import tool
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process, LLM
 
 # Page Setup
 st.set_page_config(page_title="HR Talent & Policy Intelligence Agent Crew", page_icon="🤖", layout="wide")
@@ -100,8 +100,12 @@ if run_button:
         with st.spinner("Executing CrewAI Agents..."):
             os.environ["GROQ_API_KEY"] = groq_api_key
 
-            # Native string identifier for CrewAI (No ChatGroq import used)
-            model_id = "groq/openai/gpt-oss-120b"
+            # Explicit LLM Instance
+            groq_llm = LLM(
+                model="groq/openai/gpt-oss-120b",
+                api_key=groq_api_key,
+                temperature=0.1
+            )
 
             talent_evaluator = Agent(
                 role="Senior Technical Recruiter",
@@ -109,7 +113,7 @@ if run_button:
                 backstory="You assess experience to assign seniority levels (Level 1 to 5).",
                 verbose=True,
                 memory=True,
-                llm=model_id
+                llm=groq_llm
             )
 
             policy_analyst = Agent(
@@ -119,7 +123,7 @@ if run_button:
                 tools=[query_hr_policy],
                 verbose=True,
                 memory=True,
-                llm=model_id
+                llm=groq_llm
             )
 
             offer_strategist = Agent(
@@ -128,7 +132,7 @@ if run_button:
                 backstory="You produce final, policy-compliant offer decisions.",
                 verbose=True,
                 memory=True,
-                llm=model_id
+                llm=groq_llm
             )
 
             candidate_prompt = f"{name}, {experience} years experience as {role}, requesting {remote_req} and ${bonus_req:,} signing bonus."
