@@ -2,7 +2,7 @@ import os
 import re
 import streamlit as st
 
-# ChromaDB / SQLite patch for Linux environments (Render)
+# ChromaDB / SQLite patch for Linux environments (Render / Streamlit Cloud)
 try:
     __import__('pysqlite3')
     import sys
@@ -216,7 +216,7 @@ if run_button:
             policy_context = query_hr_policy(f"{role} work model joining bonus CTC allowance policy")
             
             policy_prompt = ChatPromptTemplate.from_messages([
-                ("system", f"You are an HR Policy Specialist for the **{industry}** industry. Audit candidate terms against retrieved guidelines.\n\nRetrieved Sector Guidelines:\n{context}\n\nSTRICT FORMATTING RULES: Do not use HTML tags like <br>. Use clean Markdown bullets and tables. Ensure correct spacing for Indian Currency numbers (₹)."),
+                ("system", f"You are an HR Policy Specialist for the **{industry}** industry. Audit candidate terms against retrieved guidelines.\n\nRetrieved Sector Guidelines:\n{{context}}\n\nSTRICT FORMATTING RULES: Do not use HTML tags like <br>. Use clean Markdown bullets and tables. Ensure correct spacing for Indian Currency numbers (₹)."),
                 ("human", "Recruiter Evaluation Output:\n{eval_output}\n\nCandidate Requests:\nExpected Fixed CTC: ₹{ctc} LPA\nWork Model Request: {remote}\nJoining Bonus Request: ₹{bonus:,}")
             ])
             policy_chain = policy_prompt | llm
