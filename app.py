@@ -10,7 +10,7 @@ from crewai import Agent, Task, Crew, Process
 # Page Setup
 st.set_page_config(page_title="HR Talent & Policy Intelligence Agent Crew", page_icon="🤖", layout="wide")
 st.title("🤖 Autonomous HR Talent & Policy Intelligence Crew")
-st.caption("Multi-Agent Architecture powered by Groq API & ChromaDB RAG Engine")
+st.caption("Multi-Agent Architecture powered by Groq API (openai/gpt-oss-120b) & BM25 RAG Engine")
 
 # -------------------------------------------------------------------
 # 1. SIDEBAR CONFIGURATION & API KEY INPUT
@@ -35,30 +35,28 @@ if not groq_api_key:
         pass
 
 # -------------------------------------------------------------------
-# 2. LIGHTWEIGHT FAST RAG RETRIEVER
+# 2. LIGHTWEIGHT RAG RETRIEVER INITIALIZATION (WITHOUT CACHE HANG)
 # -------------------------------------------------------------------
-@st.cache_resource
-def load_rag_retriever():
-    sample_policy = """
-    COMPANY HR & COMPENSATION POLICY 2026:
-    1. Remote Work: Senior Engineers (Level 4+) are eligible for 100% remote work. Junior/Mid (Level 1-3) require hybrid (2 days in-office).
-    2. Signing Bonus: Max signing bonus for Level 4 is $15,000. Level 5+ can go up to $30,000.
-    3. Notice Period: Standard notice period is 30 days. Exceptions require VP approval.
-    """
+sample_policy = """
+COMPANY HR & COMPENSATION POLICY 2026:
+1. Remote Work: Senior Engineers (Level 4+) are eligible for 100% remote work. Junior/Mid (Level 1-3) require hybrid (2 days in-office).
+2. Signing Bonus: Max signing bonus for Level 4 is $15,000. Level 5+ can go up to $30,000.
+3. Notice Period: Standard notice period is 30 days. Exceptions require VP approval.
+"""
+
+# File write once
+if not os.path.exists("hr_policy.txt"):
     with open("hr_policy.txt", "w") as f:
         f.write(sample_policy)
 
-    loader = TextLoader("hr_policy.txt")
-    docs = loader.load()
+loader = TextLoader("hr_policy.txt")
+docs = loader.load()
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
-    chunks = text_splitter.split_documents(docs)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
+chunks = text_splitter.split_documents(docs)
 
-    retriever = BM25Retriever.from_documents(chunks)
-    retriever.k = 2
-    return retriever
-
-retriever = load_rag_retriever()
+retriever = BM25Retriever.from_documents(chunks)
+retriever.k = 2
 
 @tool("HR Policy Retrieval Tool")
 def query_hr_policy(query: str) -> str:
