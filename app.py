@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 
-# ChromaDB / SQLite patch for Linux cloud environments (Render)
+# ChromaDB / SQLite patch for Linux environments (Render)
 try:
     __import__('pysqlite3')
     import sys
@@ -98,10 +98,9 @@ if run_button:
         st.error("⚠️ Please enter a valid Groq API Key in the sidebar before running.")
     else:
         with st.spinner("Executing CrewAI Agents..."):
-            # Set runtime environment variable for LiteLLM/CrewAI
             os.environ["GROQ_API_KEY"] = groq_api_key
 
-            # Native string format for CrewAI
+            # Native string identifier for CrewAI (No ChatGroq import used)
             model_id = "groq/openai/gpt-oss-120b"
 
             talent_evaluator = Agent(
