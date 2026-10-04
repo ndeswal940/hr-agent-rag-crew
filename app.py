@@ -9,19 +9,22 @@ from langchain.tools import tool
 from crewai import Agent, Task, Crew, Process
 
 # -------------------------------------------------------------------
-# 1. PAGE CONFIGURATION & SECRETS INITIALIZATION
+# 1. SECURE API KEY INPUT WITH TOGGLE
 # -------------------------------------------------------------------
-st.set_page_config(
-    page_title="HR Talent & Policy Intelligence Agent Crew",
-    page_icon="🤖",
-    layout="wide"
+st.sidebar.header("🔑 API Configuration")
+
+# Checkbox toggle to reveal or hide the typed API key
+show_key = st.sidebar.checkbox("Show API Key", value=False)
+
+# Password input box (masked as **** by default)
+user_api_key = st.sidebar.text_input(
+    "Enter Groq API Key",
+    type="default" if show_key else "password",
+    help="Paste your Groq API key here (starts with gsk_)"
 )
 
-st.title("🤖 Autonomous HR Talent & Policy Intelligence Crew")
-st.caption("Multi-Agent Architecture powered by Groq API (Llama 3.3 70B) & ChromaDB RAG Engine")
-
-# Safe API key initialization for Render and local development
-groq_api_key = os.getenv("GROQ_API_KEY")
+# Priority: UI Text Box -> Environment Variable -> Streamlit Secrets
+groq_api_key = user_api_key or os.getenv("GROQ_API_KEY")
 
 if not groq_api_key:
     try:
@@ -30,8 +33,9 @@ if not groq_api_key:
     except Exception:
         pass
 
+# Halts app cleanly if no key is provided yet
 if not groq_api_key:
-    st.error("⚠️ GROQ_API_KEY is missing! Please configure environment variables in Render.")
+    st.info("👈 Please enter your **Groq API Key** in the sidebar to start.")
     st.stop()
 # -------------------------------------------------------------------
 # 2. RAG VECTOR STORE INITIALIZATION (Cached for Performance)
