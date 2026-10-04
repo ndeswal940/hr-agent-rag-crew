@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 
-# ChromaDB / SQLite patch for Linux environments (Render)
+# ChromaDB / SQLite patch for Linux cloud environments (Render)
 try:
     __import__('pysqlite3')
     import sys
@@ -74,7 +74,7 @@ def query_hr_policy(query: str) -> str:
     return "\n---\n".join([doc.page_content for doc in results])
 
 # -------------------------------------------------------------------
-# 3. SIDEBAR USER INPUTS & MAIN EXECUTION
+# 3. SIDEBAR USER INPUTS
 # -------------------------------------------------------------------
 st.sidebar.header("📋 Candidate Input Profile")
 name = st.sidebar.text_input("Candidate Name", "John Doe")
@@ -86,40 +86,50 @@ bonus_req = st.sidebar.number_input("Requested Signing Bonus ($)", min_value=0, 
 run_button = st.sidebar.button("🚀 Run CrewAI Evaluation")
 
 if not groq_api_key:
-    st.warning("👈 Pehle sidebar me apni **Groq API Key** enter karein taaki agents execution ready ho sakein.")
+    st.warning("👈 Pehle sidebar me apni **Groq API Key** enter karein taaki execution start ho sake.")
 else:
     st.success("✅ Groq API Key Configured Successfully!")
 
+# -------------------------------------------------------------------
+# 4. CREWAI EXECUTION (ONLY RUNS WHEN BUTTON IS CLICKED)
+# -------------------------------------------------------------------
 if run_button:
     if not groq_api_key:
         st.error("⚠️ Please enter a valid Groq API Key in the sidebar before running.")
     else:
         with st.spinner("Executing CrewAI Agents..."):
-            # Set environment variable so CrewAI / LiteLLM reads it natively
+            # Set runtime environment variable for LiteLLM/CrewAI
             os.environ["GROQ_API_KEY"] = groq_api_key
 
-            # Direct string definition to prevent Pydantic validation error
+            # Native string format for CrewAI
             model_id = "groq/openai/gpt-oss-120b"
 
             talent_evaluator = Agent(
                 role="Senior Technical Recruiter",
                 goal="Evaluate candidate qualifications and assign seniority level.",
                 backstory="You assess experience to assign seniority levels (Level 1 to 5).",
-                verbose=True, memory=True, llm=model_id
+                verbose=True,
+                memory=True,
+                llm=model_id
             )
 
             policy_analyst = Agent(
                 role="HR Policy Specialist",
                 goal="Ensure hiring proposals strictly comply with company policy via RAG.",
                 backstory="You audit requests against corporate policy using the HR Policy Retrieval Tool.",
-                tools=[query_hr_policy], verbose=True, memory=True, llm=model_id
+                tools=[query_hr_policy],
+                verbose=True,
+                memory=True,
+                llm=model_id
             )
 
             offer_strategist = Agent(
                 role="Offer Strategist",
                 goal="Synthesize recruitment evaluations and compliance checks into a final offer package.",
                 backstory="You produce final, policy-compliant offer decisions.",
-                verbose=True, memory=True, llm=model_id
+                verbose=True,
+                memory=True,
+                llm=model_id
             )
 
             candidate_prompt = f"{name}, {experience} years experience as {role}, requesting {remote_req} and ${bonus_req:,} signing bonus."
