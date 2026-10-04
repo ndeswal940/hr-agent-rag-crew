@@ -12,7 +12,7 @@ except ImportError:
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
-from langchain.tools import tool
+from crewai.tools import tool  # <-- CRITICAL FIX: Use crewai.tools instead of langchain.tools
 from crewai import Agent, Task, Crew, Process, LLM
 
 # Page Setup
@@ -100,7 +100,7 @@ if run_button:
         with st.spinner("Executing CrewAI Agents..."):
             os.environ["GROQ_API_KEY"] = groq_api_key
 
-            # Explicit LLM Instance
+            # Explicit CrewAI LLM Wrapper
             groq_llm = LLM(
                 model="groq/openai/gpt-oss-120b",
                 api_key=groq_api_key,
